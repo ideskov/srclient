@@ -3,6 +3,7 @@ package srclient
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -122,6 +123,22 @@ func CreateSchemaRegistryClient(schemaRegistryURL string) *SchemaRegistryClient 
 	return &SchemaRegistryClient{
 		schemaRegistryURL:    schemaRegistryURL,
 		httpClient:           &http.Client{Timeout: 5 * time.Second},
+		cachingEnabled:       true,
+		codecCreationEnabled: false,
+		idSchemaCache:        make(map[int]*Schema),
+		subjectSchemaCache:   make(map[string]*Schema),
+		sem:                  semaphore.NewWeighted(16),
+	}
+}
+
+// CreateSchemaRegistryClientWithTLSConfig allows for providing a custom tls config
+func CreateSchemaRegistryClientWithTLSConfig(schemaRegistryURL string, tlsConfig *tls.Config) *SchemaRegistryClient {
+	return &SchemaRegistryClient{
+		schemaRegistryURL: schemaRegistryURL,
+		httpClient: &http.Client{
+			Timeout:   5 * time.Second,
+			Transport: &http.Transport{TLSClientConfig: tlsConfig},
+		},
 		cachingEnabled:       true,
 		codecCreationEnabled: false,
 		idSchemaCache:        make(map[int]*Schema),
